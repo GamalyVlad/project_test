@@ -1,9 +1,18 @@
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objs as go
+from typing import List, Dict
 
 class OrderBlockVisualizer:
-    def __init__(self, ticker, start_date, end_date, range_len=15):
+    def __init__(self, ticker: str, start_date: str, end_date: str, range_len: int = 15):
+        """
+        Ініціалізує об'єкт OrderBlockVisualizer з наданими параметрами.
+
+        :param ticker: Тікер акцій для завантаження даних
+        :param start_date: Початкова дата для завантаження даних
+        :param end_date: Кінцева дата для завантаження даних
+        :param range_len: Довжина діапазону для розрахунків структури (за замовчуванням 15)
+        """
         self.ticker = ticker
         self.start_date = start_date
         self.end_date = end_date
@@ -14,10 +23,18 @@ class OrderBlockVisualizer:
         self.bos_lines = []
         self._init_variables()
         
-    def _download_data(self):
+    def _download_data(self) -> pd.DataFrame:
+        """
+        Завантажує дані для вказаного тікеру та діапазону дат.
+
+        :return: DataFrame з історичними даними акцій
+        """
         return yf.download(self.ticker, start=self.start_date, end=self.end_date)
     
     def _init_variables(self):
+        """
+        Ініціалізує змінні для зберігання даних про свічки.
+        """
         self.lastDownIndex = 0
         self.lastDown = 0
         self.lastLow = 0
@@ -31,7 +48,12 @@ class OrderBlockVisualizer:
         self.lastLongIndex = 0
         self.lastShortIndex = 0
     
-    def structureLowIndexPointer(self):
+    def structureLowIndexPointer(self) -> List[int]:
+        """
+        Визначає індекси структурних мінімумів.
+
+        :return: Список індексів структурних мінімумів
+        """
         minValue = self.data['High'].rolling(window=self.range_len).max().shift(1)
         minIndex = list(range(len(self.data)))
         for i in range(1, self.range_len):
@@ -41,10 +63,22 @@ class OrderBlockVisualizer:
         return minIndex
     
     def calculate_structure_low(self):
+        """
+        Розраховує структуру низьких значень та їх індекси.
+        """
         self.structureLow = self.data['Low'].rolling(window=self.range_len).min().shift(1)
         self.structureLowIndex = self.structureLowIndexPointer()
     
-    def add_order_block(self, index, top, bottom, color):
+    def add_order_block(self, index: int, top: float, bottom: float, color: str) -> Dict[str, float]:
+        """
+        Додає блок замовлень з вказаними параметрами.
+
+        :param index: Індекс початку блоку
+        :param top: Верхня межа блоку
+        :param bottom: Нижня межа блоку
+        :param color: Колір блоку
+        :return: Словник з параметрами блоку
+        """
         return {
             "left": index,
             "top": top,
@@ -54,6 +88,9 @@ class OrderBlockVisualizer:
         }
     
     def process_order_blocks(self):
+        """
+        Обробляє блоки замовлень та лінії BOS.
+        """
         for i in range(len(self.data)):
             if self.data['Low'][i] < self.structureLow[i]:
                 if i - self.lastUpIndex < 1000:
@@ -95,10 +132,16 @@ class OrderBlockVisualizer:
             self.lastLow = min(self.lastLow, self.data['Low'][i])
     
     def calculate_pdh_pdl(self):
+        """
+        Розраховує значення попереднього дня високого (PDH) та низького (PDL).
+        """
         self.pdh = self.data['High'][-2]  # Попередній день високий
         self.pdl = self.data['Low'][-2]   # Попередній день низький
     
     def visualize(self):
+        """
+        Створює та відображає графік з блоками замовлень та лініями BOS.
+        """
         fig = go.Figure()
 
         # Додавання свічок
